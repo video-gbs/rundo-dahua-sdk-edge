@@ -115,15 +115,15 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\2023\MediaServer\media-server-master\libmpeg\include;D:\work\2023\DHGatewayServer\x64_rtp;D:\work\2023\DHGatewayServer\x64_netsdk;D:\work\2023\DHGatewayServer;D:\work\2023\DHGatewayServer\sdk\include;D:\work\thrid-party\xpack-master\thirdparty;D:\work\thrid-party;D:\work\thrid-party\boost_1_75_0;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\rabbitmq-c-0.9.0\include\librabbitmq;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\SimpleAmqpClient\include\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\2023\MediaServer\media-server-master\x64\Release;D:\work\2023\DHGatewayServer\x64_rtp;D:\work\2023\DHGatewayServer\x64_netsdk;D:\work\2023\DHGatewayServer\x64_mysql;D:\work\2023\DHGatewayServer\sdk\libx64;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\rabbitmq-c-0.9.0\lib\64;D:\work\thrid-party\boost_1_75_0\lib64_vc14.2\lib;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\SimpleAmqpClient\lib\64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\rundo-stream-common\SimpleAmqpClient\lib\64;..\rundo-stream-common\media-server-master\x64\Release;.\x64_rtp;.\x64_netsdk;.\x64_mysql;.\sdk\libx64;..\rundo-stream-common\rabbitmq-c-0.9.0\lib\64;..\rundo-stream-common\boost_1_75_0\lib64_vc14.2\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,18 +134,19 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\work\2023\MediaServer\media-server-master\libmpeg\include;D:\work\2023\DHGatewayServer\x64_rtp;D:\work\2023\DHGatewayServer\x64_netsdk;D:\work\2023\DHGatewayServer;D:\work\2023\DHGatewayServer\sdk\include;D:\work\thrid-party\xpack-master\thirdparty;D:\work\thrid-party;D:\work\thrid-party\boost_1_75_0;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\rabbitmq-c-0.9.0\include\librabbitmq;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\SimpleAmqpClient\include\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\work\2023\MediaServer\media-server-master\x64\Release;D:\work\2023\DHGatewayServer\x64_rtp;D:\work\2023\DHGatewayServer\x64_netsdk;D:\work\2023\DHGatewayServer\x64_mysql;D:\work\2023\DHGatewayServer\sdk\libx64;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\rabbitmq-c-0.9.0\lib\64;D:\work\thrid-party\boost_1_75_0\lib64_vc14.2\lib;D:\work\thrid-party\20221130mbhlMXiR\rabbitmq-c++客户端编译库\rabbitmq\SimpleAmqpClient\lib\64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\rundo-stream-common\SimpleAmqpClient\lib\64;..\rundo-stream-common\media-server-master\x64\Release;.\x64_rtp;.\x64_netsdk;.\x64_mysql;.\sdk\libx64;..\rundo-stream-common\rabbitmq-c-0.9.0\lib\64;..\rundo-stream-common\boost_1_75_0\lib64_vc14.2\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\client_manage.cpp" />
+    <ClCompile Include="src\config_manage.cpp" />
     <ClCompile Include="src\DHGatewayServer.cpp" />
     <ClCompile Include="src\gateway_msg.cpp" />
     <ClCompile Include="src\log.cpp" />
@@ -159,6 +160,7 @@
   <ItemGroup>
     <ClInclude Include="src\client_manage.h" />
     <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\config_manage.h" />
     <ClInclude Include="src\event_condition_variable.h" />
     <ClInclude Include="src\gateway_msg.h" />
     <ClInclude Include="src\log.h" />

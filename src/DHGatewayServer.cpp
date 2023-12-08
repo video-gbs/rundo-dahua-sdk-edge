@@ -22,6 +22,7 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include "amqp_tcp_socket.h"
+#include "config_manage.h"
 
 //#pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Crypt32.lib")
@@ -132,6 +133,8 @@ std::string get_application_directory_path()
 
 int main(int argc, char* argv[])
 {
+	XHNetSDK_Init(2, 8);
+
 	gateway_msg gm;
 
 	//initialize log
@@ -151,9 +154,11 @@ int main(int argc, char* argv[])
 	ns_server_base::init_log(strLogPath.c_str(), static_cast<ns_server_base::e_custom_severity_level>(ns_server_base::e_custom_severity_level::e_info_log), true);
 	LOG_CONSOLE("启动大华网关");
 
-	XHNetSDK_Init(2, 8);
+	Config config_;
+	config_manager_singleton::get_mutable_instance().add_loacl_media_config(argv[0]);
+	config_manager_singleton::get_mutable_instance().get_media_config(config_);
 
-	server_manage_singleton::get_mutable_instance().start_server(strIP, iPort, strUser, strPasswd);
+	server_manage_singleton::get_mutable_instance().start_server(config_.MQIp, config_.MQPort, config_.MQUser, config_.MQPsw);
 
 	//client_manage _client;
 	//_client.set_client_type(1);

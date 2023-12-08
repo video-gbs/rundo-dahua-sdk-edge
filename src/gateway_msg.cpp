@@ -9,6 +9,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include "config_manage.h"
 
 gateway_msg::gateway_msg()
 {
@@ -196,7 +197,7 @@ std::string gateway_msg::gateway_heartbeat()
 	doc.AddMember("error", msg, doc.GetAllocator());
 
 	rapidjson::Value data;
-	data.SetString(std::to_string(milliseconds.count() + heartbeat_timeout + 30).c_str(), doc.GetAllocator());
+	data.SetString(std::to_string(milliseconds.count() + (heartbeat_timeout * config_manager_singleton::get_mutable_instance().get_media_config1().heartbeatTimeout) + (30 * heartbeat_timeout)).c_str(), doc.GetAllocator());
 	doc.AddMember("data", data, doc.GetAllocator());
 
 	rapidjson::StringBuffer buffer;

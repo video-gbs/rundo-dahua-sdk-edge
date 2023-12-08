@@ -45,6 +45,9 @@
     <ClCompile Include="src\PlaySession.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\config_manage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rabbitmqclient.h">
@@ -81,6 +84,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="x64_rtp\rtp_packet.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\config_manage.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

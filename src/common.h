@@ -106,6 +106,30 @@ enum SetSpeedTyep
 	_FastPlay,
 };
 
+struct Config
+{
+	std::string		mediaServerId;			//服务唯一ID
+	std::string		httpIp;					//服务IP
+	int				httpPort;				//服务业务api端口
+
+	std::string		MQIp;					//MQIP
+	int				MQPort;					//MQ端口
+	std::string		MQUser;					//MQ账号
+	std::string		MQPsw;					//MQ密码
+
+	int				heartbeatTimeout;		//网关心跳超时检测步长,默认3*60+30秒
+	int				MQListenTimeout;		//MQ业务队列监听超时步长,默认60s
+
+	Config()
+	{
+		httpPort = 0;
+		MQPort = 0;
+		heartbeatTimeout = 3 * 60;
+		MQListenTimeout = 60;
+	}
+	~Config() {}
+};
+
 struct struct_GATEWAY_SIGN_IN
 {
 	int id;

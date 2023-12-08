@@ -13,6 +13,8 @@ public:
 	client_manage();
 	~client_manage();
 
+	bool init_client();
+
 	bool start_public_queue();
 	bool start_business_queue();
 	bool restart_business_queue();
@@ -55,13 +57,16 @@ private://Rabbitmq
 	std::string strQueuename = "rundo.public.sg";
 	std::string strRecvRoutekey = "rundo.public.gs";
 	std::string strRecvQueuename = "rundo.public.gs";
-	std::string serialNum = "29fc51254c0c4809a9f4851f994111a2";
+	std::string serialNum ;
+
+	int mqListenTimeout;//秒
+	int heartbeatTimeout;//秒
 
 	rabbitmqClient objDynamicRabbitmq_recv;
 	rabbitmqClient objDynamicRabbitmq_send;
-	std::string strDynamicQueuename = "GATEWAY_GS_20";//动态业务队列
-	std::string strDynamicRoutekey = "GATEWAY_SG_20";//动态路由
-	std::string strDynamicExchange = "rundo.gateway";
+	std::string strDynamicQueuename;//动态业务队列
+	std::string strDynamicRoutekey ;//动态路由
+	std::string strDynamicExchange ;
 
 	int commo_public_channel;//公共发布队列通道
 	int commo_consumer_channel;//公共监听队列通道

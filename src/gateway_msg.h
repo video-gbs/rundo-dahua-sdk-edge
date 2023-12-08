@@ -8,7 +8,7 @@
 #include <vector>
 #include "common.h"
 
-#define heartbeat_timeout  3 * 60 * 1000//ms
+#define heartbeat_timeout  1000//ms
 
 class gateway_msg
 {

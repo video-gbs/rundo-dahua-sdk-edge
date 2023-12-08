@@ -23,6 +23,8 @@ bool server_manage::start_server(std::string strIP_, int iPort_, std::string str
 	//读取设备信息，本地文件方式
 	init_platform();
 
+	_client.init_client();
+
 	_client.set_client_type(1);
 	_client.connet_public(strIP, iPort, strUser, strPasswd);
 

@@ -721,6 +721,7 @@ PlaySessionPtr SessionMange::GetPlaySession(std::string key)
 	{
 		return it->second;
 	}
+	return NULL;
 }
 
 bool SessionMange::InsertPlaySession(std::string key, PlaySessionPtr p)

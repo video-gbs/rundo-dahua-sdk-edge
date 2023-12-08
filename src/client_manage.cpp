@@ -2,6 +2,7 @@
 #include <mutex>
 #include "log.h"
 #include "server_manage.h"
+#include "config_manage.h"
 
 client_manage::client_manage()
 {
@@ -19,12 +20,23 @@ client_manage::~client_manage()
 	objRabbitmq.Disconnect();
 }
 
+bool client_manage::init_client()
+{
+	Config c_;
+	config_manager_singleton::get_mutable_instance().get_media_config(c_);
+	serialNum = c_.mediaServerId;
+	mqListenTimeout = c_.MQListenTimeout;
+	heartbeatTimeout = c_.heartbeatTimeout;
+
+	return false;
+}
+
 void client_manage::heartbeat_func()
 {
 	LOG_INFO("start heartbeat_func");
 	while (true)
 	{
-		Sleep(heartbeat_timeout / 3);
+		Sleep(heartbeat_timeout * heartbeatTimeout / 3);
 		bool b = send_public_queue(gm.gateway_heartbeat());
 		if (b)
 		{
@@ -114,7 +126,7 @@ bool client_manage::start_business_queue()
 	_business_ev.signal();
 
 	struct timeval timeout;
-	timeout.tv_sec = 1.5 * 60;
+	timeout.tv_sec = mqListenTimeout;
 	timeout.tv_usec = 0;
 	LOG_CONSOLE("¼àÌý%sÒµÎñMQÖÐ...", strDynamicQueuename.c_str());
 	while (while_flag)
