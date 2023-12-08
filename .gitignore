@@ -1,7 +1,6 @@
 .vs
+DHGatewayServer.vcxproj
 x64
 x64_bin_release/log
-x64_bin_release/DHGatewayServer.exp
-x64_bin_release/DHGatewayServer.lib
-x64_bin_release/DHGatewayServer.pdb
-x64_bin_release/DHGatewayServer.exe
+x64_bin_release
+x64_bin_debug
