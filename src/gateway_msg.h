@@ -50,7 +50,7 @@ public:
 	bool pars_requst(std::string json, std::string& msgId, std::string& msgType, std::string& deviceId, std::string& channelId);
 
 private:
-	std::string strSerialNum = "29fc51254c0c4809a9f4851f994111a2";
+	std::string strSerialNum;
 	std::string local_ip;
 	std::string msg_id_h;
 	std::string msg_id_b;
