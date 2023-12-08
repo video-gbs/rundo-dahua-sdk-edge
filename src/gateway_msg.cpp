@@ -77,7 +77,7 @@ std::string gateway_msg::gateway_sign_in()
 	doc.SetObject();
 
 	rapidjson::Value serialNum;
-	serialNum.SetString(strSerialNum.c_str(), doc.GetAllocator());
+	serialNum.SetString(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId.c_str(), doc.GetAllocator());
 	doc.AddMember("serialNum", serialNum, doc.GetAllocator());
 
 	rapidjson::Value msgType;
@@ -173,7 +173,7 @@ std::string gateway_msg::gateway_heartbeat()
 	doc.SetObject();
 
 	rapidjson::Value serialNum;
-	serialNum.SetString(strSerialNum.c_str(), doc.GetAllocator());
+	serialNum.SetString(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId.c_str(), doc.GetAllocator());
 	doc.AddMember("serialNum", serialNum, doc.GetAllocator());
 
 	rapidjson::Value msgType;
@@ -228,7 +228,7 @@ std::string gateway_msg::gateway_re_sign_in()
 	doc.SetObject();
 
 	rapidjson::Value serialNum;
-	serialNum.SetString(strSerialNum.c_str(), doc.GetAllocator());
+	serialNum.SetString(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId.c_str(), doc.GetAllocator());
 	doc.AddMember("serialNum", serialNum, doc.GetAllocator());
 
 	rapidjson::Value msgType;
@@ -309,7 +309,7 @@ std::string gateway_msg::device_sign_in()
 	doc.SetObject();
 
 	rapidjson::Value serialNum;
-	serialNum.SetString(strSerialNum, doc.GetAllocator());
+	serialNum.SetString(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, doc.GetAllocator());
 	doc.AddMember("serialNum", serialNum, doc.GetAllocator());
 
 	rapidjson::Value msgType;
@@ -458,7 +458,7 @@ std::string gateway_msg::device_total_sync(std::vector<Platform> platform_list, 
 	document.AddMember("msg", "SUCCESS", allocator);
 	document.AddMember("msgId", msgId, allocator);
 	document.AddMember("msgType", "DEVICE_TOTAL_SYNC", allocator);
-	document.AddMember("serialNum", strSerialNum, allocator);
+	document.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, allocator);
 
 	// 生成 JSON 字符串
 	rapidjson::StringBuffer buffer;
@@ -476,7 +476,7 @@ std::string gateway_msg::channel_sync(std::vector<Device> device_list, Platform&
 	rapidjson::Document::AllocatorType& allocator = document.GetAllocator();
 
 	// 添加顶层字段
-	document.AddMember("serialNum", strSerialNum, allocator);
+	document.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, allocator);
 	document.AddMember("msgType", "CHANNEL_SYNC", allocator);
 	document.AddMember("msgId", platform.msgId, allocator);
 
@@ -560,7 +560,7 @@ std::string gateway_msg::response(const std::string& msgId, int code, const std:
 	document.SetObject();
 
 	// 添加字段
-	rapidjson::Value serialNum(strSerialNum, document.GetAllocator());
+	rapidjson::Value serialNum(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, document.GetAllocator());
 	document.AddMember("serialNum", serialNum, document.GetAllocator());
 
 	rapidjson::Value msgTypeValue(msgType.c_str(), document.GetAllocator());
@@ -687,7 +687,7 @@ std::string gateway_msg::ptz_preset_list(Preset p, std::vector<Preset> presets, 
 
 	// 创建最终的 JSON 对象
 	rapidjson::Value finalJson(rapidjson::kObjectType);
-	finalJson.AddMember("serialNum", strSerialNum, document.GetAllocator());
+	finalJson.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, document.GetAllocator());
 	finalJson.AddMember("msgType", "CHANNEL_PTZ_PRESET", document.GetAllocator());
 	finalJson.AddMember("msgId", p.msgId, document.GetAllocator());
 
@@ -807,7 +807,7 @@ std::string gateway_msg::response_record_list(const std::string& msgId, int code
 	rapidjson::Document::AllocatorType& allocator = document.GetAllocator();
 
 	// Adding primitive values
-	document.AddMember("serialNum", rapidjson::Value(strSerialNum.c_str(), allocator).Move(), allocator);
+	document.AddMember("serialNum", rapidjson::Value(config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId.c_str(), allocator).Move(), allocator);
 	document.AddMember("msgType", rapidjson::Value(msgType.c_str(), allocator).Move(), allocator);
 	document.AddMember("msgId", rapidjson::Value(msgId.c_str(), allocator).Move(), allocator);
 
@@ -1072,7 +1072,7 @@ bool gateway_msg::isMySerialNum(std::string json)
 
 	if (doc.HasMember("serialNum") && doc["serialNum"].IsString())
 	{
-		if (strSerialNum == doc["serialNum"].GetString())
+		if (config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId == doc["serialNum"].GetString())
 			return true;
 	}
 
@@ -1128,7 +1128,7 @@ std::string gateway_msg::device_add(int step, Platform platform)
 
 		// 添加其他字段
 		int msg_id = 49536;
-		doc.AddMember("serialNum", strSerialNum, doc.GetAllocator());
+		doc.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, doc.GetAllocator());
 		doc.AddMember("msgType", "DEVICE_ADD", doc.GetAllocator());
 		doc.AddMember("msgId", platform.msgId, doc.GetAllocator());
 		doc.AddMember("code", platform.login_results, doc.GetAllocator());
@@ -1154,7 +1154,7 @@ std::string gateway_msg::device_add(int step, Platform platform)
 		// 添加键值对到 JSON 对象
 		rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
 
-		doc.AddMember("serialNum", strSerialNum, allocator);
+		doc.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, allocator);
 		doc.AddMember("msgType", "DEVICE_SIGN_IN", allocator);
 		msg_id++;
 		doc.AddMember("msgId", msg_id_b += std::to_string(msg_id), allocator);
@@ -1295,7 +1295,7 @@ std::string gateway_msg::device_sync(std::vector<Device> device_list, Platform& 
 	rapidjson::Document document(rapidjson::kObjectType);
 	rapidjson::Document::AllocatorType& allocator = document.GetAllocator(); // 只保留一次定义
 
-	document.AddMember("serialNum", strSerialNum, allocator);
+	document.AddMember("serialNum", config_manager_singleton::get_mutable_instance().get_media_config1().mediaServerId, allocator);
 	document.AddMember("msgType", "CHANNEL_SYNC", allocator);
 	document.AddMember("msgId", platform.msgId, allocator);
 
