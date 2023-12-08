@@ -68,6 +68,8 @@ private://Rabbitmq
 	int business_public_channel;//业务发布队列通道
 	int business_consumer_channel;//业务监听队列通道
 private:
+	boost::posix_time::ptime lastSendTime;
+
 	event_condition_variable _public_ev;
 	event_condition_variable _business_ev;
 

@@ -148,9 +148,9 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 	BOOL dhRet = CLIENT_GetDevConfig(login.handle, DH_DEV_CHANNELCFG, -1, (void*)cfg, m_nChanNum * sizeof(DHDEV_CHANNEL_CFG), &bytesReturned);
 	if (!dhRet)
 	{
-		// ret = DHSDK_GetLastError;
 		LOG_ERROR("CLIENT_GetDevConfig DH_DEV_CHANNELCFG Fail! Errcode:%d", DHSDK_GetLastError);
-		//return ret;
+		ret = DHSDK_GetLastError;
+		return ret;
 	}
 	bytesReturned /= sizeof(DHDEV_CHANNEL_CFG);
 	LOG_INFO("bytesReturned num:%d", bytesReturned);
@@ -172,6 +172,8 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 	if (!dhIpRet)//有些设备不支持
 	{
 		LOG_INFO("CLIENT_MatrixGetCameras error Fail! Errcode:%d", ret);
+		ret = DHSDK_GetLastError;
+		return ret;
 	}
 	// else
 	// {
@@ -214,17 +216,18 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 
 	for (int i = 0; i < m_nChanNum; ++i)
 	{
-		list[i].id = i;
-		list[i].name = cfg[i].szChannelName;//pChannelName+i*32;
 		if (dhIpRet && (strcmp(stuOutParam.pstuCameras[i].stuRemoteDevice.szIp, "192.168.0.0") != 0))//
 		{
+			list[i].id = i;
+			list[i].name = cfg[i].szChannelName;//pChannelName+i*32;
+
 			DH_MATRIX_CAMERA_INFO& stuinfo = stuOutParam.pstuCameras[i];
 			list[i].ip = stuinfo.stuRemoteDevice.szIp;
 			list[i].port = stuinfo.stuRemoteDevice.nPort;
 			list[i].username = stuinfo.stuRemoteDevice.szUserEx;
 			list[i].password = stuinfo.stuRemoteDevice.szPwdEx;
+			list[i].online = camera_state[i].emConnectionState == EM_CAMERA_STATE_TYPE_CONNECTED;
 		}
-		list[i].online = camera_state[i].emConnectionState == EM_CAMERA_STATE_TYPE_CONNECTED;
 		//list[camera_state[i].nChannel].status = camera_state[i].emConnectionState;
 	}
 
@@ -241,31 +244,44 @@ int sdk_wrap::ptz_control(LoginResults login, PtzCMD ptz)
 	{2,DH_PTZ_LEFT_CONTROL},{1,DH_PTZ_RIGHT_CONTROL},//左右
 	{10,DH_EXTPTZ_LEFTTOP},{9,DH_EXTPTZ_RIGHTTOP},//左上右上
 	{6,DH_EXTPTZ_LEFTDOWN},{5,DH_EXTPTZ_RIGHTDOWN},//左下右下
-	{72,DH_PTZ_APERTURE_ADD_CONTROL},{68,DH_PTZ_APERTURE_DEC_CONTROL},//放大缩写光圈
-	{32,DH_PTZ_ZOOM_ADD_CONTROL},{16,DH_PTZ_ZOOM_DEC_CONTROL},//倍率变大变小
-	{65,DH_PTZ_FOCUS_ADD_CONTROL},{66,DH_PTZ_FOCUS_DEC_CONTROL},//聚焦近远
+	{72,DH_PTZ_APERTURE_DEC_CONTROL},{68,DH_PTZ_APERTURE_ADD_CONTROL},//放大缩写光圈
+	{32,DH_PTZ_ZOOM_DEC_CONTROL},{16,DH_PTZ_ZOOM_ADD_CONTROL},//倍率变大变小
+	{65,DH_PTZ_FOCUS_DEC_CONTROL},{66,DH_PTZ_FOCUS_ADD_CONTROL},//聚焦近远
 	{130,DH_PTZ_POINT_MOVE_CONTROL},{129,DH_PTZ_POINT_SET_CONTROL},{131,DH_PTZ_POINT_DEL_CONTROL}//跳转设置删除预置位
 	};
 
 	//IRISE_AND_FOCUS_STOP(64, "IRISE_AND_FOCUS_STOP")光圈和聚焦 操作的停止
-
 	int ret = 0;
-	if (ptz.contrl_param > 8)
-		ptz.contrl_param = 8;
 
 	DWORD cmd = 0;
 	auto it = XH_TO_DH_PTZBASECMD.find(ptz.contrl_cmd);
 	if (it != XH_TO_DH_PTZBASECMD.end())
+	{
 		cmd = it->second;
+		if (130 == ptz.contrl_cmd || 129 == ptz.contrl_cmd || 131 == ptz.contrl_cmd)
+		{
+			LOG_CONSOLE("CLIENT_DHPTZControlEx2.预置位:[lLoginID=%llu, nChannelID=%d, dwPTZCommand=%d, param1=%d, param2=%d, param3=%d, dwStop=%d, param4=%d.]", login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, FALSE, ptz.contrl_param);
+			if (!CLIENT_DHPTZControlEx2(login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, FALSE, NULL))
+			{
+				ret = DHSDK_GetLastError;
+				LOG_ERROR("CLIENT_DHPTZControlEx2.预置位: Fail! Errcode: %d", ret);
+				return ret;
+			}
+			return 0;
+		}
+	}
 	else
 		if (it == XH_TO_DH_PTZBASECMD.end())
 		{
 			if (0 == ptz.contrl_cmd || 64 == ptz.contrl_cmd)
 			{
 				ptz.dwStop = TRUE;
-				ptz.contrl_cmd = temp_ptz_cmd;
+				cmd = temp_ptz_cmd;
 			}
 		}
+
+	if (ptz.contrl_param > 8)
+		ptz.contrl_param = 8;
 
 	LOG_CONSOLE("CLIENT_DHPTZControlEx2.[lLoginID=%llu, nChannelID=%d, dwPTZCommand=%d, param1=%d, param2=%d, param3=%d, dwStop=%d, param4=NULL.]", login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, ptz.dwStop);
 	if (!CLIENT_DHPTZControlEx2(login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, ptz.dwStop, NULL))
@@ -274,7 +290,7 @@ int sdk_wrap::ptz_control(LoginResults login, PtzCMD ptz)
 		LOG_ERROR("CLIENT_DHPTZControlEx2  Fail! Errcode: %d", ret);
 		return ret;
 	}
-	temp_ptz_cmd = ptz.contrl_cmd;
+	temp_ptz_cmd = cmd;
 	return 0;
 }
 
@@ -327,7 +343,7 @@ int sdk_wrap::start_real_stream(LoginResults login, Play real_play, DH_PLAY_STRE
 	PlaySessionPtr session = SessionMange_singleton::get_mutable_instance().GetPlaySession(real_play.streamId);
 	if (!session)
 	{
-		session = boost::make_shared<PlaySession>(login.handle, real_play.channel, this);
+		session = boost::make_shared<PlaySession>(login.handle, real_play.channel, real_play.streamId, this);
 		if (!real_play.sdpIp.empty())//分发地址
 		{
 			//real_play.sdpIp = "172.20.0.120";
@@ -362,7 +378,7 @@ int sdk_wrap::start_play_back(LoginResults login, Record record)
 	PlaySessionPtr session = SessionMange_singleton::get_mutable_instance().GetPlaySession(record.streamId);
 	if (!session)
 	{
-		session = boost::make_shared<PlaySession>(login.handle, record.channel, this);
+		session = boost::make_shared<PlaySession>(login.handle, record.channel, record.streamId, this);
 		if (!record.sdpIp.empty())//分发地址
 		{
 			//record.sdpIp = "172.20.0.120";

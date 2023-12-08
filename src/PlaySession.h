@@ -89,10 +89,9 @@ class PlaySession
 {
 public:
 	//PlaySession();
-	PlaySession(LLONG handle, int channel, void* pUser = nullptr);
+	PlaySession(LLONG handle, int channel, std::string streamid, void* pUser = nullptr);
 	~PlaySession();
 
-	//void CALLBACK RealDataCallBackEx(LLONG lRealHandle, DWORD dwDataType, BYTE* pBuffer, DWORD dwBufSize, LLONG param, LDWORD dwUser);
 public:
 	void afterDHReadDataCallBack(BYTE* streambuf, DWORD bufSize);
 	bool setMSAddr(std::string ip, int port, int link_type);
@@ -120,6 +119,7 @@ public:
 	bool creat_packet(int videoEncType, int audioEncType);
 
 	int sendMS(uint8_t* data, uint32_t datasize);
+	void update_source_stream();
 private:
 	//连接流媒体
 	int connetMS(DispatchInfo dispatch);
@@ -152,6 +152,10 @@ public:
 	uint32_t                nCurrentVideoTimestamp;// 当前帧时间戳
 	unsigned short          nVideoRtpLen;
 
+	std::string stream_id;
+	int		m_nChannel;				// camera channel
+	uint32_t source_stream_count_;
+	int64_t source_stream_timestamp_;
 	bool _is_frist;
 	bool _is_run;
 	char* s_buffer;
@@ -173,7 +177,6 @@ protected:
 	std::atomic<LLONG>       m_lRecordPlayHandle;//播放句柄
 	std::atomic<LLONG>       m_lRealPlayHandle;//播放句柄
 	std::string addr;			// ip与端口
-	int 		m_nChannel;				// camera channel
 	bool        m_bGetIFrame;//是否已经获取到I帧
 	unsigned long long m_llDataFrameCount; //数据回调的次数;
 	time_t      m_lastRecvDataTime; //最后一次回调时间

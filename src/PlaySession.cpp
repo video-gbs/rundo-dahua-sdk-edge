@@ -22,11 +22,11 @@ static time_t StringToDatetime(const std::string& str)
 	return t_;
 }
 
-PlaySession::PlaySession(LLONG handle, int channel, void* pUser)
-	:m_lLoginID(handle), m_lRealPlayHandle(0), m_lRecordPlayHandle(0), m_nChannel(channel), m_bGetIFrame(false), m_llDataFrameCount(0), m_lastRecvDataTime(0),
+PlaySession::PlaySession(LLONG handle, int channel, std::string streamid, void* pUser)
+	:m_lLoginID(handle), m_lRealPlayHandle(0), m_lRecordPlayHandle(0), m_nChannel(channel), m_bGetIFrame(false), m_llDataFrameCount(0), m_lastRecvDataTime(0), source_stream_count_(0), stream_id(streamid), source_stream_timestamp_(0),
 	m_originVideoTimestamp(0), m_videoTimestamp(0), m_originAudioTimestamp(0), m_audioTimestamp(0), m_cbUserData(pUser), nMediaClient(0), nVideoStreamID(-1), _is_frist(true), m_nSpeed(1.0), nCurrentVideoTimestamp(0)
 {
-	LOG_CONSOLE("创建播放会话:%d", m_nChannel);
+	LOG_CONSOLE("创建播放会话:%d,stream_id:%s", m_nChannel, stream_id.c_str());
 }
 PlaySession::~PlaySession()
 {
@@ -35,8 +35,11 @@ PlaySession::~PlaySession()
 	//sprintf(s, "%04d-%02d-%02d %02d:%02d:%02d", _t->tm_year + 1900, _t->tm_mon + 1, _t->tm_mday,
 	//	_t->tm_hour, _t->tm_min, _t->tm_sec);
 
+	// 打印本地时间
+	LOG_CONSOLE("回收播放会话:%d,stream_id:%s,source_stream_count:%d source_stream_timestamp:%lld current: %lld", m_nChannel, stream_id.c_str(), source_stream_count_, source_stream_timestamp_,
+		boost::chrono::duration_cast<boost::chrono::milliseconds>(boost::chrono::steady_clock::now().time_since_epoch()).count());
+
 	disconnetMS();//关闭流媒体链接
-	LOG_CONSOLE("回收播放会话:%d", m_nChannel);
 }
 
 static void* ps_alloc(void* param, size_t bytes)
@@ -68,8 +71,9 @@ void GB28181RtpServer_rtp_packet_callback_func_send(_rtp_packet_cb* cb)
 	if (pThis == NULL || !pThis->_is_run)
 		return;
 
-	//LOG_CONSOLE("rtp:0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", cb->data[0], cb->data[1], cb->data[2], cb->data[3], cb->data[4], cb->data[5]);
-	pThis->sendMS(cb->data, cb->datasize);
+	pThis->update_source_stream();
+
+	int val = pThis->sendMS(cb->data, cb->datasize);
 }
 
 int CALLBACK RecordDataCallbackEx2(LLONG lRealHandle, DWORD dwDataType, BYTE* pBuffer, DWORD dwBufSize, LDWORD dwUser)
@@ -695,6 +699,17 @@ int PlaySession::sendMS(uint8_t* pRtpVideo, uint32_t nDataLength)
 	}
 
 	return nSendRet;
+}
+
+void PlaySession::update_source_stream()
+{
+	++source_stream_count_;
+	source_stream_timestamp_ = boost::chrono::duration_cast<boost::chrono::milliseconds>(boost::chrono::steady_clock::now().time_since_epoch()).count();
+
+	if (1 == source_stream_count_)
+	{
+		LOG_CONSOLE("**********send first frame of source stream**********");
+	}
 }
 
 PlaySessionPtr SessionMange::GetPlaySession(std::string key)

@@ -46,7 +46,7 @@ gateway_msg::~gateway_msg()
 {
 }
 
-std::string getCurrentTime() 
+std::string getCurrentTime()
 {
 	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	std::tm timeInfo = *std::localtime(&now);
@@ -196,7 +196,7 @@ std::string gateway_msg::gateway_heartbeat()
 	doc.AddMember("error", msg, doc.GetAllocator());
 
 	rapidjson::Value data;
-	data.SetString(std::to_string(milliseconds.count() + heartbeat_timeout).c_str(), doc.GetAllocator());
+	data.SetString(std::to_string(milliseconds.count() + heartbeat_timeout + 30).c_str(), doc.GetAllocator());
 	doc.AddMember("data", data, doc.GetAllocator());
 
 	rapidjson::StringBuffer buffer;
@@ -416,7 +416,7 @@ bool gateway_msg::pars_device_total_sync(std::string json, std::string& msgId)
 	if (doc.HasMember("msgId") && doc["msgId"].IsString())
 	{
 		msgId = doc["msgId"].GetString();
-			return true;
+		return true;
 	}
 	return false;
 }
@@ -487,9 +487,16 @@ std::string gateway_msg::channel_sync(std::vector<Device> device_list, Platform&
 	std::string formatted_time = ss.str();
 	document.AddMember("time", formatted_time, allocator);
 
-	//document.AddMember("time", "2023-08-30T15:45:36.525594700", allocator);
-	document.AddMember("code", 0, allocator);
-	document.AddMember("msg", "SUCCESS", allocator);
+	if (device_list.size() == 0)
+	{
+		document.AddMember("code", 1, allocator);
+		document.AddMember("msg", "channel list is null", allocator);
+	}
+	else
+	{
+		document.AddMember("code", 0, allocator);
+		document.AddMember("msg", "SUCCESS", allocator);
+	}
 
 	// 添加嵌套的 data 字段
 	rapidjson::Value data(rapidjson::kObjectType);
@@ -498,12 +505,17 @@ std::string gateway_msg::channel_sync(std::vector<Device> device_list, Platform&
 	// 添加嵌套的 channelDetailList 数组
 	rapidjson::Value channelDetailList(rapidjson::kArrayType);
 
+	int temp_ = 0;
 	for (int i = 0; i < device_list.size(); ++i)
 	{
+		if (device_list[i].name.empty())
+		{
+			continue;
+		}
 		std::string temp_device_id = platform.deviceId;
 		temp_device_id += "#";
 		rapidjson::Value channelEntity(rapidjson::kObjectType);
-		channelEntity.AddMember("id", temp_device_id += std::to_string(device_list[i].id), allocator);
+		channelEntity.AddMember("channelId", temp_device_id += std::to_string(device_list[i].id), allocator);
 		channelEntity.AddMember("channelNum", device_list[i].id, allocator);
 		channelEntity.AddMember("channelType", 1, allocator);
 		channelEntity.AddMember("encodeId", platform.deviceId, allocator);
@@ -522,12 +534,12 @@ std::string gateway_msg::channel_sync(std::vector<Device> device_list, Platform&
 		//channelEntity.AddMember("updatedAt", nullptr, allocator);  // 请添加实际值
 
 		// 添加其他字段...
-
+		temp_++;
 		channelDetailList.PushBack(channelEntity, allocator);
 	}
 
 	data.AddMember("channelDetailList", channelDetailList, allocator);
-	data.AddMember("num", device_list.size(), allocator);
+	data.AddMember("num", temp_, allocator);
 
 	// 将 data 添加到 document
 	document.AddMember("data", data, allocator);
@@ -645,7 +657,7 @@ bool gateway_msg::pars_ptz_preset(std::string json, Preset& p)
 	return false;
 }
 
-std::string gateway_msg::ptz_preset_list(Preset p, std::vector<Preset> presets)
+std::string gateway_msg::ptz_preset_list(Preset p, std::vector<Preset> presets, int code)
 {
 	// 初始化 RapidJSON 文档
 	rapidjson::Document document;
@@ -687,8 +699,15 @@ std::string gateway_msg::ptz_preset_list(Preset p, std::vector<Preset> presets)
 	rapidjson::Value time(formatted_time, document.GetAllocator());
 	finalJson.AddMember("time", time, document.GetAllocator());
 	//finalJson.AddMember("time", "2023-09-13T11:18:44.268041", document.GetAllocator());
-	finalJson.AddMember("code", 0, document.GetAllocator());
-	finalJson.AddMember("msg", "SUCCESS", document.GetAllocator());
+	finalJson.AddMember("code", code, document.GetAllocator());
+	if (code == 0)
+	{
+		finalJson.AddMember("msg", "SUCCESS", document.GetAllocator());
+	}
+	else
+	{
+		finalJson.AddMember("msg", "FAIL", document.GetAllocator());
+	}
 	finalJson.AddMember("data", dataArray, document.GetAllocator());
 
 	// 使用 RapidJSON 的 Writer 将 JSON 输出到字符串缓冲区
@@ -1153,7 +1172,7 @@ std::string gateway_msg::device_add(int step, Platform platform)
 
 		// 创建嵌套的 JSON 对象
 		rapidjson::Value dataObj(rapidjson::kObjectType);
-		dataObj.AddMember("id", platform.deviceId, allocator);
+		dataObj.AddMember("deviceId", platform.deviceId, allocator);
 		dataObj.AddMember("lUserId", 4, allocator);
 		dataObj.AddMember("username", platform.username, allocator);
 		dataObj.AddMember("serialNumber", "DS-7808N-R2(C)0820230227CCRRL33683189WCVU", allocator);

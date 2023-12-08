@@ -24,7 +24,7 @@ void client_manage::heartbeat_func()
 	LOG_INFO("start heartbeat_func");
 	while (true)
 	{
-		Sleep(heartbeat_timeout);
+		Sleep(heartbeat_timeout / 3);
 		bool b = send_public_queue(gm.gateway_heartbeat());
 		if (b)
 		{
@@ -37,6 +37,7 @@ void client_manage::heartbeat_func()
 			reconnet_public(_ip, _port, _user, _pws);
 			send_public_queue(gm.gateway_heartbeat());
 		}
+		//Sleep(heartbeat_timeout / 3);
 	}
 }
 
@@ -113,7 +114,7 @@ bool client_manage::start_business_queue()
 	_business_ev.signal();
 
 	struct timeval timeout;
-	timeout.tv_sec = 5;
+	timeout.tv_sec = 1.5 * 60;
 	timeout.tv_usec = 0;
 	LOG_CONSOLE("监听%s业务MQ中...", strDynamicQueuename.c_str());
 	while (while_flag)
@@ -372,16 +373,14 @@ bool client_manage::send_business_queue(std::string msg)
 	switch (_client_type)
 	{
 	case 1:
+	{
+		LOG_INFO("开始发布业务MQ:%s channel:%d", strDynamicExchange.c_str(), commo_public_channel);
 
-		LOG_INFO("开始发布业务MQ channel:%d", commo_public_channel);
-		//iRet = objRabbitmq.Publish(msg, strExchange, strRoutekey, commo_public_channel);
-		iRet = objDynamicRabbitmq_send.Publish(msg, strDynamicExchange, strDynamicRoutekey);
-		if (iRet != 0)
-		{
-			LOG_ERROR("发布业务MQ失败,Ret:%d %s", iRet, msg.c_str());
-
+		boost::posix_time::ptime currentSendTime = boost::posix_time::microsec_clock::local_time();
+		if ((currentSendTime - lastSendTime).total_seconds() > 10)
+		{//上次发送时间超过10秒就重新连接MQ再发送
 			iRet = objDynamicRabbitmq_send.Disconnect();
-			LOG_CONSOLE("开始重新链接动态发布MQ:%s %d", strDynamicExchange.c_str(), iRet);
+
 			iRet = objDynamicRabbitmq_send.Connect(_ip, _port, _user, _pws);
 			if (iRet != 0)
 			{
@@ -389,34 +388,43 @@ bool client_manage::send_business_queue(std::string msg)
 			}
 			else
 			{
-				LOG_CONSOLE("链接业务发布MQ成功");
-			}
-			// 可选操作 Declare Exchange
-			iRet = objDynamicRabbitmq_send.ExchangeDeclare(strDynamicExchange, "topic", true);
-			if (iRet != 0)
-			{
-				LOG_ERROR("设置业务发布MQ交换器失败 Ret:%d", iRet);
-			}
-			else
-			{
-				LOG_CONSOLE("设置业务发布MQ交换器成功");
-			}
+				iRet = objDynamicRabbitmq_send.ExchangeDeclare(strDynamicExchange, "topic", true);
+				if (iRet != 0)
+				{
+					LOG_ERROR("设置业务发布MQ交换器失败 Ret:%d", iRet);
+				}
+				else
+				{
+					iRet = objDynamicRabbitmq_send.Publish(msg, strDynamicExchange, strDynamicRoutekey);
+					if (iRet != 0)
+					{
+						LOG_ERROR("重新发布业务MQ失败,Ret:%d %s", iRet, msg.c_str());
+					}
+					else
+					{
+						LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
 
+						lastSendTime = boost::posix_time::microsec_clock::local_time();
+					}
+				}
+			}
+		}
+		else
+		{
 			iRet = objDynamicRabbitmq_send.Publish(msg, strDynamicExchange, strDynamicRoutekey);
-			if (iRet!=0)
+			if (iRet != 0)
 			{
 				LOG_ERROR("重新发布业务MQ失败,Ret:%d %s", iRet, msg.c_str());
 			}
 			else
 			{
-				LOG_CONSOLE("重新发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+				LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+
+				lastSendTime = boost::posix_time::microsec_clock::local_time();
 			}
 		}
-		else
-		{
-			LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
-		}
-		break;
+	}
+	break;
 	case 2:
 		break;
 	default:

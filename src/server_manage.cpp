@@ -494,13 +494,42 @@ void server_manage::device_total_sync(std::string json)
 	gm.pars_device_total_sync(json, temp_msgId);
 	build = gm.device_total_sync(platform_list.platforms, temp_msgId);
 	_client.send_business_queue(build);
+
+	//LoginResults Results;
+	//Platform platform;
+	//Platform temp_platform;
+	//for (const auto& platform_ : platform_list.platforms)
+	//{
+	//	if (!platform_.soft_del)
+	//	{
+	//		if (get_platform(platform_.deviceId, platform))
+	//		{
+	//			// 获取SDK登录句柄
+	//			platform.login_results = _sdk.connet_equipment(platform.ip, platform.port, platform.username, platform.password, Results);
+	//		}
+	//	}
+	//}
+	////获取镜头列表
+	//std::vector<Device> temp_list;
+	//int ret = _sdk.get_camera_list(Results, temp_list);
+	////生成响应json
+	//build = gm.channel_sync(temp_list, temp_platform);
+	//_client.send_business_queue(build);
+
 	LOG_CONSOLE("结束处理设备全量同步业务:msgId:%s", temp_msgId.c_str());
 }
 
 void server_manage::device_delete(std::string json)
 {
 	LOG_CONSOLE("开始处理设备删除业务");
-	LOG_CONSOLE("结束处理设备删除业务");
+	std::string build;
+	Platform platform;
+
+	gm.pars_device_delete_soft(json, platform);
+
+	build = gm.response(platform.msgId, 0, "DEVICE_DELETE");
+	_client.send_business_queue(build);
+	LOG_CONSOLE("结束处理设备删除业务,msgId:", platform.msgId.c_str());
 }
 
 void server_manage::device_delete_soft(std::string msg_)
@@ -514,25 +543,46 @@ void server_manage::device_delete_soft(std::string msg_)
 
 	build = gm.response(platform.msgId, 0, "DEVICE_DELETE_SOFT");
 	_client.send_business_queue(build);
-	LOG_CONSOLE("结束处理[%s]设备软删除业务", platform.deviceId.c_str());
+	LOG_CONSOLE("结束处理[%s]设备软删除业务,msgId:", platform.deviceId.c_str(), platform.msgId.c_str());
 }
 
 void server_manage::device_delete_recover(std::string json)
 {
 	LOG_CONSOLE("开始处理设备删除恢复业务");
-	LOG_CONSOLE("结束处理设备删除恢复业务");
+	std::string build;
+	Platform platform;
+
+	gm.pars_device_delete_soft(json, platform);
+
+	build = gm.response(platform.msgId, 0, "DEVICE_DELETE_RECOVER");
+	_client.send_business_queue(build);
+	LOG_CONSOLE("结束处理设备删除恢复业务,msgId:", platform.msgId.c_str());
 }
 
 void server_manage::channel_delete_soft(std::string json)
 {
 	LOG_CONSOLE("开始处理通道软删除业务");
-	LOG_CONSOLE("结束处理通道软删除业务");
+	std::string build;
+	Platform platform;
+
+	gm.pars_device_delete_soft(json, platform);
+
+	build = gm.response(platform.msgId, 0, "CHANNEL_DELETE_SOFT");
+	_client.send_business_queue(build);
+	LOG_CONSOLE("结束处理通道软删除业务,msgId:", platform.msgId.c_str());
 }
 
 void server_manage::channel_delete_recover(std::string json)
 {
 	LOG_CONSOLE("开始处理通道删除恢复业务");
-	LOG_CONSOLE("结束处理通道删除恢复业务");
+	std::string build;
+	Platform platform;
+
+	gm.pars_device_delete_soft(json, platform);
+
+	build = gm.response(platform.msgId, 0, "CHANNEL_DELETE_RECOVER");
+	_client.send_business_queue(build);
+	LOG_CONSOLE("结束处理通道删除恢复业务,msgId:", platform.msgId.c_str());
 }
 
 void server_manage::channel_ptz_control(std::string json)
@@ -556,16 +606,15 @@ void server_manage::channel_ptz_control(std::string json)
 	build = gm.response(ptz.msgId, val, ptz.msgType);
 	_client.send_business_queue(build);
 
-	LOG_CONSOLE("结束处理[%d]云台控制业务:msgID:%s", ptz.channel, ptz.msgId.c_str());
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%d]云台控制业务失败:msgID:%s", ptz.channel, ptz.msgId.c_str());
+	}
+	LOG_CONSOLE("处理[%d]云台控制业务成功:msgID:%s", ptz.channel, ptz.msgId.c_str());
 }
 
 void server_manage::channel_ptz_preset(std::string json)
 {
-	if (temp_size == json.size())
-	{
-		LOG_CONSOLE("判断为重复业务，立即返回不操作");
-		return;
-	}
 	LOG_CONSOLE("开始处理云台预置位业务");
 	LoginResults Results;
 	Platform platform;
@@ -582,11 +631,14 @@ void server_manage::channel_ptz_preset(std::string json)
 
 	std::vector<Preset> temp_list;
 	int val = _sdk.query_ptz_preset(Results, temp_.channel, temp_list);
-	build = gm.ptz_preset_list(temp_, temp_list);
+	build = gm.ptz_preset_list(temp_, temp_list, val);
 	_client.send_business_queue(build);
-	temp_size = build.size();
 
-	LOG_CONSOLE("结束处理[%d]云台预置位业务:msgID:%s", temp_.channel, temp_.msgId.c_str());
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%d]云台预置位业务失败:msgID:%s", temp_.channel, temp_.msgId.c_str());
+	}
+	LOG_CONSOLE("处理[%d]云台预置位业务成功:msgID:%s", temp_.channel, temp_.msgId.c_str());
 }
 
 void server_manage::channel_3d_operation(std::string json)
@@ -616,10 +668,14 @@ void server_manage::channel_play(std::string json)
 	}
 
 	int val = _sdk.start_real_stream(Results, temp_, MAIN_STREAM);
-	build = gm.response(temp_.msgId, val, temp_.msgType);
-	_client.send_business_queue(build);
+	//build = gm.response(temp_.msgId, val, temp_.msgType);
+	//_client.send_business_queue(build);
 
-	LOG_CONSOLE("结束处理[%d:%s]实况播放业务:msgID:%s", temp_.channel, temp_.streamId.c_str(), temp_.msgId.c_str());
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%d:%s]实况播放业务失败:msgID:%s，剩余会话:%d", temp_.channel, temp_.streamId.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+	}
+	LOG_CONSOLE("处理[%d:%s]实况播放业务成功:msgID:%s，剩余会话:%d", temp_.channel, temp_.streamId.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 }
 
 void server_manage::channel_record_info(std::string json)
@@ -644,7 +700,11 @@ void server_manage::channel_record_info(std::string json)
 	build = gm.response_record_list(temp_.msgId, val, temp_.msgType, list_);
 	_client.send_business_queue(build);
 
-	LOG_CONSOLE("结束处理[%d]录像列表业务:msgID:%s", temp_.channel, temp_.msgId.c_str());
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%d]录像列表业务失败:msgID:%s", temp_.channel, temp_.msgId.c_str());
+	}
+	LOG_CONSOLE("处理[%d]录像列表业务成功:msgID:%s", temp_.channel, temp_.msgId.c_str());
 }
 
 void server_manage::channel_playback(std::string json)
@@ -664,8 +724,12 @@ void server_manage::channel_playback(std::string json)
 	}
 
 	int val = _sdk.start_play_back(Results, temp_);
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%s:%s-%s]录像回放业务失败:msgID:%s，剩余会话:%d", temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+	}
+	LOG_CONSOLE("处理[%s:%s-%s]录像回放业务成功:msgID:%s，剩余会话:%d", temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 	//需要处理响应
-	LOG_CONSOLE("结束处理[%d:%s:%s-%s]录像回放业务:msgID:%s", temp_.channel, temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), temp_.msgId.c_str());
 }
 
 void server_manage::channel_stop_play(std::string json)
@@ -677,9 +741,12 @@ void server_manage::channel_stop_play(std::string json)
 	std::string key;
 
 	gm.pars_channel_stop_play(json, key);
-	_sdk.stop_play(key);
-
-	LOG_CONSOLE("结束处理[%s]停止播放业务", key.c_str());
+	int val = _sdk.stop_play(key);
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%s]停止播放业务失败，剩余会话:%d", key.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+	}
+	LOG_CONSOLE("处理[%s]停止播放业务成功，剩余会话:%d", key.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 }
 
 void server_manage::device_record_pause(std::string json)
@@ -692,9 +759,12 @@ void server_manage::device_record_pause(std::string json)
 
 	gm.pars_streamId(json, streamID);
 
-	_sdk.device_record_pause(streamID);
-
-	LOG_CONSOLE("结束处理[%s]回放暂停业务", streamID.c_str());
+	int val = _sdk.device_record_pause(streamID);
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%s]回放暂停业务失败", streamID.c_str());
+	}
+	LOG_CONSOLE("处理[%s]回放暂停业务成功", streamID.c_str());
 }
 
 void server_manage::device_record_resume(std::string json)
@@ -707,8 +777,12 @@ void server_manage::device_record_resume(std::string json)
 
 	gm.pars_streamId(json, streamID);
 
-	_sdk.device_record_resume(streamID);
-	LOG_CONSOLE("结束处理[%s]回放暂停恢复业务", streamID.c_str());
+	int val = _sdk.device_record_resume(streamID);
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%s]回放暂停恢复业务失败", streamID.c_str());
+	}
+	LOG_CONSOLE("处理[%s]回放暂停恢复业务成功", streamID.c_str());
 }
 
 void server_manage::device_record_speed(std::string json)
@@ -722,6 +796,10 @@ void server_manage::device_record_speed(std::string json)
 
 	gm.pars_record_speed(json, speed, streamID);
 
-	_sdk.device_record_speed(streamID, speed);
-	LOG_CONSOLE("结束处理[%s]设置回放倍速业务", streamID.c_str());
+	int val = _sdk.device_record_speed(streamID, speed);
+	if (val != 0)
+	{
+		LOG_ERROR("处理[%s]设置回放倍速业务失败", streamID.c_str());
+	}
+	LOG_CONSOLE("处理[%s]设置回放倍速业务成功", streamID.c_str());
 }

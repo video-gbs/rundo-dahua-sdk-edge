@@ -31,14 +31,14 @@ public:
 	std::string device_sync(std::vector<Device> device_list, Platform& platform);//响应
 	bool pars_device_delete_soft(std::string json, Platform& platform); //返回对应的设备下面全部的通道数据
 	bool pars_device_total_sync(std::string json, std::string& msgId); //返回对应的设备下面全部的通道数据
-	std::string device_total_sync(std::vector<Platform> platform_list,std::string msgId);//全量设备同步响应
+	std::string device_total_sync(std::vector<Platform> platform_list, std::string msgId);//全量设备同步响应
 
 	std::string channel_sync(std::vector<Device> device_list, Platform& platform);
 
 	std::string response(const std::string& msgId, int code, const std::string& msgType);
 	bool pars_ptz_control(std::string json, PtzCMD& ptz);
 	bool pars_ptz_preset(std::string json, Preset& p);
-	std::string ptz_preset_list(Preset p, std::vector<Preset> presets);
+	std::string ptz_preset_list(Preset p, std::vector<Preset> presets, int code);
 	bool pars_channel_play(std::string json, Play& p);
 	bool pars_channel_record_info(std::string json, Record& p);
 	std::string response_record_list(const std::string& msgId, int code, const std::string& msgType, std::vector<Record> list);

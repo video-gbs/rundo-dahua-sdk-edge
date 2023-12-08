@@ -64,15 +64,14 @@ int rabbitmqClient::Connect(const string& strHostname, int iPort, const string& 
 
 int rabbitmqClient::Disconnect()
 {
-	LOG_CONSOLE("开始销毁链接与通道，m_pConn:%p channel_id:%p", m_pConn, channel_id);
+	LOG_CONSOLE("开始销毁链接与通道，m_pConn:%p channel_id:%p channel:%d", m_pConn, channel_id, m_iChannel);
 
 	// 先关闭通道
-	if (channel_id != NULL)
-	{
-		if (0 != ErrorMsg(amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS), "Closing channel"))
-			return -2;
-		channel_id = NULL;
-	}
+	//if (channel_id != NULL)
+	//{
+	//	ErrorMsg(amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS), "Closing channel");
+	//	channel_id = NULL;
+	//}
 
 	if (0 != ErrorMsg(amqp_connection_close(m_pConn, AMQP_REPLY_SUCCESS), "Closing connection"))
 		return -1;
@@ -80,6 +79,7 @@ int rabbitmqClient::Disconnect()
 	if (amqp_destroy_connection(m_pConn) < 0)
 		return -2;
 
+	channel_id = NULL;
 	m_pConn = NULL;
 
 	//LOG_CONSOLE("m_pConn:%p channel_id:%p", m_pConn, channel_id);
@@ -289,12 +289,11 @@ int rabbitmqClient::Publish(const string& strMessage, const string& strExchange,
 		LOG_ERROR("publish amqp_basic_publish failed:%d,exchange:%s routekey:%s", iRet, strExchange.c_str(), strRoutekey.c_str());
 		if (0 != ErrorMsg(amqp_get_rpc_reply(m_pConn), "amqp_basic_publish"))
 		{
+			amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS);
+			channel_id = NULL;
 			return iRet;
 		}
 	}
-
-	amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS);
-	channel_id = NULL;
 
 	return iRet;
 }
@@ -306,7 +305,7 @@ int rabbitmqClient::Consumer(const string& strQueueName, vector<string>& message
 		LOG_ERROR("Consumer m_pConn is null, Consumer failed");
 		return -1;
 	}
-	
+
 	if (!channel_id)
 	{
 		channel_id = amqp_channel_open(m_pConn, m_iChannel);
@@ -321,7 +320,7 @@ int rabbitmqClient::Consumer(const string& strQueueName, vector<string>& message
 	consumer_tag = amqp_empty_bytes;
 
 	amqp_basic_qos(m_pConn, m_iChannel, 0, GetNum, 0);
-	
+
 	int no_ack = filterate ? 0 : 1; // no_ack为true 那么后续不会发送Basic.Ack(调用amqp_basic_ack),no_ack为false，那么后续需要发送Basic.Ack(调用amqp_basic_ack)
 
 	int no_local = 0; // 用于指示服务器不应将消息发送给发布者自己

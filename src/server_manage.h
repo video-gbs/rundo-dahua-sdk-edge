@@ -92,6 +92,7 @@ private:
 	std::string strUser;
 	std::string strPasswd;
 
+	std::string temp_channel_list;
 	std::string temp_msgId;
 	int temp_size;
 };
