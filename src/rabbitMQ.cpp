@@ -16,7 +16,8 @@ rabbitmqClient::rabbitmqClient()
 }
 
 rabbitmqClient::~rabbitmqClient() {
-	if (NULL != m_pConn) {
+	if (NULL != m_pConn) 
+	{
 		Disconnect();
 		m_pConn = NULL;
 	}
@@ -52,11 +53,12 @@ int rabbitmqClient::Connect(const string& strHostname, int iPort, const string& 
 		return -3;
 	}
 
-	if (0 != ErrorMsg(amqp_login(m_pConn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, m_strUser.c_str(), m_strPasswd.c_str()), "Logging in"))
+	if (0 != ErrorMsg(amqp_login(m_pConn, "/", 0, AMQP_DEFAULT_FRAME_SIZE, 65, AMQP_SASL_METHOD_PLAIN, m_strUser.c_str(), m_strPasswd.c_str()), "Logging in"))
 	{
 		return -4;
 	}
 
+	LOG_CONSOLE("rabbitmq链接成功:[%p:%s:%d]", m_pConn, m_strHostname.c_str(), m_iPort);
 	channel_id = NULL;
 
 	return 0;
@@ -67,11 +69,11 @@ int rabbitmqClient::Disconnect()
 	LOG_CONSOLE("开始销毁链接与通道，m_pConn:%p channel_id:%p channel:%d", m_pConn, channel_id, m_iChannel);
 
 	// 先关闭通道
-	//if (channel_id != NULL)
-	//{
-	//	ErrorMsg(amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS), "Closing channel");
-	//	channel_id = NULL;
-	//}
+	if (channel_id != NULL)
+	{
+		ErrorMsg(amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS), "Closing channel");
+		channel_id = NULL;
+	}
 
 	if (0 != ErrorMsg(amqp_connection_close(m_pConn, AMQP_REPLY_SUCCESS), "Closing connection"))
 		return -1;
@@ -86,6 +88,31 @@ int rabbitmqClient::Disconnect()
 	return 0;
 }
 
+void rabbitmqClient::DisconnectEx()
+{
+	LOG_CONSOLE("开始异步销毁链接与通道，m_pConn:%p channel_id:%p channel:%d", m_pDisConn, channel_id, m_iDisChannel);
+
+	// 先关闭通道
+	if (channel_id != NULL)
+	{
+		ErrorMsg(amqp_channel_close(m_pDisConn, m_iDisChannel, AMQP_REPLY_SUCCESS), "Closing channel");
+		channel_id = NULL;
+	}
+
+	if (0 != ErrorMsg(amqp_connection_close(m_pDisConn, AMQP_REPLY_SUCCESS), "Closing connection"))
+		return ;
+
+	if (amqp_destroy_connection(m_pDisConn) < 0)
+		return ;
+
+	channel_id = NULL;
+	m_pDisConn = NULL;
+	m_iDisChannel = 0;
+
+	//LOG_CONSOLE("m_pConn:%p channel_id:%p", m_pConn, channel_id);
+	return ;
+}
+
 int rabbitmqClient::ExchangeDeclare(const string& strExchange, const string& strType, bool durable)
 {
 	if (!channel_id)
@@ -96,6 +123,7 @@ int rabbitmqClient::ExchangeDeclare(const string& strExchange, const string& str
 		{
 			amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS);
 			channel_id = NULL;
+			LOG_ERROR("ExchangeDeclare.exchange:%s.amqp_channel_open fail", strExchange.c_str());
 			return -2;
 		}
 	}
@@ -114,6 +142,9 @@ int rabbitmqClient::ExchangeDeclare(const string& strExchange, const string& str
 		channel_id = NULL;
 		return -1;
 	}
+	//启动发布者确认模式
+	amqp_confirm_select(m_pConn, m_iChannel);
+	LOG_CONSOLE("启动发布者确认模式,exchange:%s", strExchange.c_str());
 
 	return 0;
 }
@@ -269,7 +300,7 @@ int rabbitmqClient::Publish(const string& strMessage, const string& strExchange,
 		{
 			amqp_channel_close(m_pConn, m_iChannel, AMQP_REPLY_SUCCESS);
 			channel_id = NULL;
-			return -2;
+			return -4;
 		}
 	}
 
@@ -284,7 +315,7 @@ int rabbitmqClient::Publish(const string& strMessage, const string& strExchange,
 	//LOG_CONSOLE("发布：%s", strMessage.c_str());
 	//if (0 != amqp_basic_publish(m_pConn, m_iChannel, exchange, routekey, 0, 0, &props, message_bytes)) {
 	iRet = amqp_basic_publish(m_pConn, m_iChannel, exchange, routekey, 0, 0, NULL, message_bytes);
-	if (iRet != 0)
+	if (iRet != AMQP_STATUS_OK)
 	{
 		LOG_ERROR("publish amqp_basic_publish failed:%d,exchange:%s routekey:%s", iRet, strExchange.c_str(), strRoutekey.c_str());
 		if (0 != ErrorMsg(amqp_get_rpc_reply(m_pConn), "amqp_basic_publish"))
@@ -294,8 +325,57 @@ int rabbitmqClient::Publish(const string& strMessage, const string& strExchange,
 			return iRet;
 		}
 	}
+	// 准备接收帧
+	amqp_frame_t frame = {0};
+	timeval tv;
+	tv.tv_sec = 2;//等待5秒
+	tv.tv_usec = 0;//等待5微秒
+	//amqp_simple_wait_frame(m_pConn, &frame);
+	amqp_simple_wait_frame_noblock(m_pConn, &frame, &tv);
+	if (frame.channel == m_iChannel)//首先检查从AMQP连接接收到的帧是否来自预期通道(在此例中是KChannel)
+	{    //如果是，那么进一步检查帧的内容。它查看帧的载荷中的方法ID，看是否为AMQP_BASIC_ACK_METHOD
+		if (frame.payload.method.id == AMQP_BASIC_ACK_METHOD)//AMQP_BASIC_ACK_METHOD是一个方法ID，表示这是确认帧，即服务器已经成功接收并处理了之前发送的消息
+		{
+			// 如果接收到ACK确认帧，那么它将载荷解码为一个amqp_basic_ack_t结构，并查看这个结构中的multiple字段
+			amqp_basic_ack_t* ack = (amqp_basic_ack_t*)frame.payload.method.decoded; // 如果接收到ACK确认帧，打印确认消息
+			if (ack->multiple)
+				//如果multiple为真，那么表示服务器已经成功处理了所有到达指定delivery tag的消息。程序将打印一条确认消息，并显示成功处理的最后一条消息的delivery tag。
+				LOG_INFO("服务器已所有消息,[delivery_tag:%s:%llu] ", strRoutekey.c_str(), ack->delivery_tag);
+			else
+			{
+				/*如果multiple字段为假（false），那么表示服务器已经成功处理了具有指定delivery tag的单条消息。程序将打印一条确认消息，并显示成功处理的消息的delivery tag。*/
+				if (strRoutekey.find("GATEWAY_SG") != std::string::npos)
+					LOG_CONSOLE("服务器已收到消息,[delivery_tag:%s:%llu] %s ", strRoutekey.c_str(), ack->delivery_tag, strMessage.c_str());
+				else
+					LOG_INFO("服务器已收到消息,[delivery_tag:%s:%llu] %s ", strRoutekey.c_str(), ack->delivery_tag, strMessage.c_str());
+			}
 
-	return iRet;
+			return iRet;
+		}
+		else if (frame.payload.method.id == AMQP_BASIC_RETURN_METHOD) //检查帧的载荷中的方法ID，看是否为AMQP_BASIC_RETURN_METHOD。
+		{ //这个方法ID表示这是一个返回帧，即消息未能被正确路由到队列，并被RabbitMQ服务器返回。
+			//如果接收到的是返回帧，那么将读取并保存返回的消息，然后销毁这个消息对象。
+			amqp_message_t returned_message;
+			amqp_read_message(m_pConn, 1, &returned_message, 0);//读取并保存返回的消息
+			LOG_ERROR("消息发送到队列失败，被RabbitMQ服务器退回,[delivery_tag:%s] %s", strRoutekey.c_str(), (char*)returned_message.body.bytes);
+			amqp_destroy_message(&returned_message);//然后销毁这个消息对象
+			//再次调用amqp_simple_wait_frame函数来接收下一个帧。这是因为在MQP_BASIC_RETURN_METHOD之后，
+			//RabbitMQ服务器会发送另一个AMQP_BASIC_ACK_METHOD帧来确认消息已经被返回。
+			//amqp_simple_wait_frame(m_pConn, &frame);
+			amqp_simple_wait_frame_noblock(m_pConn, &frame, &tv);
+			if (frame.payload.method.id == AMQP_BASIC_ACK_METHOD)
+				//如果接收到的帧是AMQP_BASIC_ACK_METHOD帧，程序会打印出"Message returned"，来确认消息已经被返回。
+				LOG_CONSOLE("Message returned");
+			return -1;
+		}
+		LOG_ERROR("消息发送到队列失败,[delivery_tag:%s] ", strRoutekey.c_str());
+		return -2;
+	}
+
+	m_iDisChannel = m_iChannel;
+	m_pDisConn = m_pConn;
+
+	return -3;
 }
 
 int rabbitmqClient::Consumer(const string& strQueueName, vector<string>& message_array, int GetNum, bool filterate, struct timeval* timeout)
@@ -340,9 +420,18 @@ int rabbitmqClient::Consumer(const string& strQueueName, vector<string>& message
 	while (GetNum > 0)
 	{
 		amqp_maybe_release_buffers(m_pConn);
-		res = amqp_consume_message(m_pConn, &envelope, timeout, 0);
+		res = amqp_consume_message(m_pConn, &envelope, timeout, 0); 
 		if (AMQP_RESPONSE_NORMAL != res.reply_type)
 		{
+			//if (AMQP_RESPONSE_LIBRARY_EXCEPTION == res.reply_type && AMQP_STATUS_UNEXPECTED_STATE == res.library_error)
+			//{
+			//	amqp_frame_t frame;
+			//	if (AMQP_STATUS_OK != amqp_simple_wait_frame(m_pConn, &frame)) 
+			//	{
+			//		LOG_ERROR("Consumer library_error:%d queuename:%s", res.library_error, strQueueName.c_str());
+			//		return res.library_error;
+			//	}
+			//}
 			int iRet = ErrorMsg(amqp_get_rpc_reply(m_pConn), "consume_message");
 			if (iRet == socket_error)
 			{
@@ -359,9 +448,9 @@ int rabbitmqClient::Consumer(const string& strQueueName, vector<string>& message
 			}
 			else
 			{
-				LOG_ERROR("Consumer amqp_channel_close failed:-%d queuename:%s", res.reply_type, strQueueName.c_str());
+				LOG_ERROR("Consumer library_error:%d queuename:%s", res.library_error, strQueueName.c_str());
 
-				return -res.reply_type;
+				return res.library_error;
 			}
 		}
 		string str((char*)envelope.message.body.bytes, (char*)envelope.message.body.bytes + envelope.message.body.len);

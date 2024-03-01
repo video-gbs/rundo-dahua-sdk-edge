@@ -47,7 +47,7 @@ bool EquipmentMgr::Login(std::string m_sIp, int m_nPort, std::string m_sUserName
 		handle.chanNum = m_stLoginObject.stuDeviceInfo.nChanNum;
 		handle.equipment_key = key;
 		Equipment_map.insert(std::make_pair(key, handle));
-		LOG_INFO("登陆%s成功,句柄:%ll,数量:%d,uid:%ll", key.c_str(), handle.handle, handle.chanNum, handle.uid);
+		LOG_INFO("登陆%s成功,句柄:%lld,数量:%d,uid:%lld", key.c_str(), handle.handle, handle.chanNum, handle.uid);
 	}
 	return true;
 }
@@ -132,7 +132,7 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 {
 	int ret = 0;
 	m_nChanNum = login.chanNum;
-	LOG_INFO("ChanNum:%d", m_nChanNum);
+	LOG_INFO("channel_num:%d", m_nChanNum);
 	if (0 == m_nChanNum)
 		return ret;
 	list.resize(m_nChanNum);
@@ -231,6 +231,7 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 		//list[camera_state[i].nChannel].status = camera_state[i].emConnectionState;
 	}
 
+	LOG_CONSOLE("get_camera_size:%d", list.size());
 	delete[] stuAllmatrixcamerinfo;
 	delete[] cfg;
 	return ret;
@@ -238,6 +239,7 @@ int sdk_wrap::get_camera_list(LoginResults login, std::vector<Device>& list)
 
 int sdk_wrap::ptz_control(LoginResults login, PtzCMD ptz)
 {
+	LOG_CONSOLE("CLIENT_DHPTZControlEx2.Start");
 	const static boost::unordered_map<int, DWORD> XH_TO_DH_PTZBASECMD
 	{
 	{8,DH_PTZ_UP_CONTROL},{4,DH_PTZ_DOWN_CONTROL},    //上下
@@ -270,26 +272,21 @@ int sdk_wrap::ptz_control(LoginResults login, PtzCMD ptz)
 			return 0;
 		}
 	}
-	else
-		if (it == XH_TO_DH_PTZBASECMD.end())
-		{
-			if (0 == ptz.contrl_cmd || 64 == ptz.contrl_cmd)
-			{
-				ptz.dwStop = TRUE;
-				cmd = temp_ptz_cmd;
-			}
-		}
+	if (0 == ptz.contrl_cmd || 64 == ptz.contrl_cmd)
+	{
+		ptz.dwStop = TRUE;
+		cmd = temp_ptz_cmd;
+	}
 
 	if (ptz.contrl_param > 8)
 		ptz.contrl_param = 8;
 
-	LOG_CONSOLE("CLIENT_DHPTZControlEx2.[lLoginID=%llu, nChannelID=%d, dwPTZCommand=%d, param1=%d, param2=%d, param3=%d, dwStop=%d, param4=NULL.]", login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, ptz.dwStop);
 	if (!CLIENT_DHPTZControlEx2(login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, ptz.dwStop, NULL))
 	{
 		ret = DHSDK_GetLastError;
 		LOG_ERROR("CLIENT_DHPTZControlEx2  Fail! Errcode: %d", ret);
-		return ret;
 	}
+	LOG_CONSOLE("CLIENT_DHPTZControlEx2.End[lLoginID=%llu, nChannelID=%d, dwPTZCommand=%d, param1=%d, param2=%d, param3=%d, dwStop=%d, param4=NULL.]", login.handle, ptz.channel, cmd, 0, ptz.contrl_param, 0, ptz.dwStop);
 	temp_ptz_cmd = cmd;
 	return 0;
 }
@@ -298,6 +295,7 @@ int sdk_wrap::ptz_control(LoginResults login, PtzCMD ptz)
 int sdk_wrap::query_ptz_preset(LoginResults login, int channel, std::vector<Preset>& lists)
 {
 	int ret = 0;
+	LOG_CONSOLE("CLIENT_QueryRemotDevState.Start");
 
 	NET_PTZ_PRESET preset[MAX_PRESETNUM];
 	for (int i = 0; i < MAX_PRESETNUM; i++)
@@ -328,6 +326,7 @@ int sdk_wrap::query_ptz_preset(LoginResults login, int channel, std::vector<Pres
 		p.index = preset[i].nIndex;
 		lists.push_back(p);
 	}
+	LOG_CONSOLE("CLIENT_QueryRemotDevState.End:%d", preset_list.dwRetPresetNum);
 	return ret;
 }
 
@@ -441,7 +440,7 @@ int sdk_wrap::query_record_file(LoginResults login, int channel, const std::stri
 {
 	int ret = 0;
 	//channel += 1;
-	LOG_INFO("QueryRecordFile:%d start:%s-end:%s", channel, start.c_str(), end.c_str());
+	LOG_INFO("QueryRecordFile:%d RecordTime[%s--%s]", channel, start.c_str(), end.c_str());
 
 	int nRecordFileType = NET_RECORD_TYPE_ALL;
 	NET_TIME	stStartTime;
@@ -523,7 +522,7 @@ int sdk_wrap::query_record_file(LoginResults login, int channel, const std::stri
 			file.endtime.dwYear, file.endtime.dwMonth, file.endtime.dwDay,
 			file.endtime.dwHour, file.endtime.dwMinute, file.endtime.dwSecond);
 
-		LOG_INFO("filename:%s, time:%s bHint:%d", file.filename, startTime, endTime, (unsigned int)file.bHint);
+		//LOG_INFO("filename:%s, time:%s bHint:%d", file.filename, startTime, endTime, (unsigned int)file.bHint);
 
 		// 如果查询到的某一段录像的开始时间都已经超过了传入查询条件的结束时间，这一段录像直接扔掉
 		int nRet = CompareTime(startTime, temp_end.c_str());
@@ -541,7 +540,7 @@ int sdk_wrap::query_record_file(LoginResults login, int channel, const std::stri
 		files.emplace_back(f);
 	}
 
-	LOG_INFO("finish deal ,total files count : %d", files.size());
+	LOG_INFO("QueryRecordFile:%d, total files count : %d", channel, files.size());
 	return ret;
 }
 

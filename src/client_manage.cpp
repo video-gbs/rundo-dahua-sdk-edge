@@ -28,6 +28,8 @@ bool client_manage::init_client()
 	mqListenTimeout = c_.MQListenTimeout;
 	heartbeatTimeout = c_.heartbeatTimeout;
 
+	_republic = false;
+
 	return false;
 }
 
@@ -50,6 +52,37 @@ void client_manage::heartbeat_func()
 			send_public_queue(gm.gateway_heartbeat());
 		}
 		//Sleep(heartbeat_timeout / 3);
+	}
+}
+
+void client_manage::disconnet_func()
+{
+	LOG_INFO("start disconnett_func");
+	while (true)
+	{
+		_disconnet_ev.wait();
+		objDynamicRabbitmq_send.DisconnectEx();
+	}
+}
+
+void client_manage::sent_business_func()
+{
+	LOG_INFO("start sent_business_func");
+	std::string msg;
+	while (true)
+	{
+		if (_business_msg_list.empty())
+		{
+			_business_msg_list_ev.wait();
+		}
+		else if (!_business_msg_list.empty())
+		{
+			boost::lock_guard<boost::mutex> lg(_business_msg_list_mtx);
+			msg = _business_msg_list[0];
+			_business_msg_list.erase(_business_msg_list.begin());
+
+			send_business_queue(msg);
+		}
 	}
 }
 
@@ -163,8 +196,9 @@ bool client_manage::restart_business_queue()
 {
 	objDynamicRabbitmq_recv.Disconnect();
 
-	LOG_CONSOLE("先重新注册网关公共队列");
-	send_public_queue(gm.gateway_re_sign_in());
+	//不需要再注册，只要发送心跳即可在线
+	//LOG_CONSOLE("先重新注册网关公共队列");
+	//send_public_queue(gm.gateway_re_sign_in());
 
 	LOG_CONSOLE("开始重新链接消费队列");
 	int iRet = objDynamicRabbitmq_recv.Connect(_ip, _port, _user, _pws);
@@ -172,16 +206,16 @@ bool client_manage::restart_business_queue()
 	{
 		LOG_ERROR("Connect objDynamicRabbitmq Ret: %d", iRet);
 	}
-	LOG_CONSOLE("开始重新声明费队列交换器");
+	LOG_CONSOLE("开始重新声明队列交换器");
 	// 可选操作 Declare Exchange
 	iRet = objDynamicRabbitmq_recv.ExchangeDeclare(strDynamicExchange, "topic", true);
 	if (iRet != 0)
 	{
-		LOG_ERROR("重新声明费队列交换器失败 Ret: %d", iRet);
+		LOG_ERROR("重新声明队列交换器失败 Ret: %d", iRet);
 	}
 	else
 	{
-		LOG_CONSOLE("重新声明费队列交换器成功 Ret: %d", iRet);
+		LOG_CONSOLE("重新声明队列交换器成功 Ret: %d", iRet);
 	}
 
 	start_business_queue();
@@ -266,11 +300,6 @@ bool client_manage::connet_public(std::string ip, int port, std::string user, st
 	_user = user;
 	_pws = pws;
 
-	if (!thread_new)
-	{
-		thread_new = boost::make_shared<boost::thread>(boost::bind(&client_manage::heartbeat_func, this));
-	}
-
 	return true;
 }
 
@@ -319,6 +348,19 @@ bool client_manage::connet_business(std::string ip, int port, std::string user, 
 		break;
 	default:
 		break;
+	}
+
+	if (!thread_new)
+	{
+		thread_new = boost::make_shared<boost::thread>(boost::bind(&client_manage::heartbeat_func, this));
+	}
+	if (!_handle_disconnet_thread)
+	{
+		_handle_disconnet_thread = boost::make_shared<boost::thread>(boost::bind(&client_manage::disconnet_func, this));
+	}
+	if (!_send_msg_thread)
+	{
+		_send_msg_thread = boost::make_shared<boost::thread>(boost::bind(&client_manage::sent_business_func, this));
 	}
 	return true;
 }
@@ -387,11 +429,11 @@ bool client_manage::send_business_queue(std::string msg)
 	case 1:
 	{
 		LOG_INFO("开始发布业务MQ:%s channel:%d", strDynamicExchange.c_str(), commo_public_channel);
-
+		republic:
 		boost::posix_time::ptime currentSendTime = boost::posix_time::microsec_clock::local_time();
-		if ((currentSendTime - lastSendTime).total_seconds() > 10)
+		if (/*(currentSendTime - lastSendTime).total_seconds() > 600||*/_republic)
 		{//上次发送时间超过10秒就重新连接MQ再发送
-			iRet = objDynamicRabbitmq_send.Disconnect();
+			//iRet = objDynamicRabbitmq_send.Disconnect();
 
 			iRet = objDynamicRabbitmq_send.Connect(_ip, _port, _user, _pws);
 			if (iRet != 0)
@@ -414,23 +456,29 @@ bool client_manage::send_business_queue(std::string msg)
 					}
 					else
 					{
-						LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+						//LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+						_republic = false;
 
 						lastSendTime = boost::posix_time::microsec_clock::local_time();
 					}
 				}
 			}
+
 		}
 		else
 		{
 			iRet = objDynamicRabbitmq_send.Publish(msg, strDynamicExchange, strDynamicRoutekey);
 			if (iRet != 0)
 			{
-				LOG_ERROR("重新发布业务MQ失败,Ret:%d %s", iRet, msg.c_str());
+				LOG_ERROR("发布业务MQ失败,即将开始重连发布,Ret:%d %s", iRet, msg.c_str());
+				_republic = true;
+				_disconnet_ev.signal();
+				goto republic;
 			}
 			else
 			{
-				LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+				//LOG_CONSOLE("发布业务MQ成功:%s:%s", strDynamicRoutekey.c_str(), msg.c_str());
+				_republic = false;
 
 				lastSendTime = boost::posix_time::microsec_clock::local_time();
 			}
@@ -442,6 +490,15 @@ bool client_manage::send_business_queue(std::string msg)
 	default:
 		break;
 	}
+	return true;
+}
+
+bool client_manage::send_business_queueEx(std::string msg)
+{
+	boost::lock_guard<boost::mutex> lg(_business_msg_list_mtx);
+	_business_msg_list.push_back(msg);
+	_business_msg_list_ev.signal();
+
 	return true;
 }
 

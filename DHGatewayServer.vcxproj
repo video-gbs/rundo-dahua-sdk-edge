@@ -48,7 +48,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -118,7 +118,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\rundo-stream-common\SimpleAmqpClient\include\src;.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,7 +134,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\rundo-stream-common\SimpleAmqpClient\include\src;.\;..\rundo-stream-common;..\rundo-stream-common\media-server-master\libmpeg\include;.\x64_rtp;.\x64_netsdk;.\sdk\include;..\rundo-stream-common\xpack-master\thirdparty;..\rundo-stream-common\boost_1_75_0;..\rundo-stream-common\rabbitmq-c-0.9.0\include\librabbitmq</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

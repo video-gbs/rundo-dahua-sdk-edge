@@ -117,7 +117,8 @@ void LIBNET_CALLMETHOD onread(NETHANDLE srvhandle,
 void LIBNET_CALLMETHOD	onclose(NETHANDLE srvhandle,
 	NETHANDLE clihandle)
 {
-	LOG_CONSOLE("clihandle:%d onclose.", clihandle);
+	LOG_CONSOLE("clihandle:%d onclose.将主动回收会话", clihandle);
+	SessionMange_singleton::get_mutable_instance().DisconnetPlaySession(clihandle);//网络原因断开情况，需要主动回收会话
 	//session_mgr_singleton::get_mutable_instance().disconnection_session(clihandle);
 }
 

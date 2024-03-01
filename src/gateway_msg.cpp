@@ -323,7 +323,7 @@ std::string gateway_msg::device_sign_in()
 	msg_id_b = "b_";
 
 	rapidjson::Value time;
-	time.SetString("2023-08-30T17:22:05.588553100", doc.GetAllocator());
+	time.SetString(getCurrentTime(), doc.GetAllocator());
 	doc.AddMember("time", time, doc.GetAllocator());
 
 	doc.AddMember("code", 0, doc.GetAllocator());
@@ -334,21 +334,21 @@ std::string gateway_msg::device_sign_in()
 
 	rapidjson::Value data;
 	data.SetObject();
-	data.AddMember("id", 20043, doc.GetAllocator());
-	data.AddMember("lUserId", 4, doc.GetAllocator());
+	data.AddMember("id", 21043, doc.GetAllocator());
+	data.AddMember("lUserId", 0, doc.GetAllocator());
 	data.AddMember("username", "admin", doc.GetAllocator());
 	data.AddMember("serialNumber", "DS-7808N-R2(C)0820230227CCRRL33683189WCVU", doc.GetAllocator());
 	data.AddMember("name", "test", doc.GetAllocator());
 	data.AddMember("charset", "GB2312", doc.GetAllocator());
 	data.AddMember("ip", "172.20.0.245", doc.GetAllocator());
-	data.AddMember("port", 8000, doc.GetAllocator());
-	data.AddMember("manufacturer", "hikvision", doc.GetAllocator());
+	data.AddMember("port", 37777, doc.GetAllocator());
+	data.AddMember("manufacturer", "dh", doc.GetAllocator());
 	data.AddMember("online", 1, doc.GetAllocator());
 	data.AddMember("deviceType", 3, doc.GetAllocator());
 	data.AddMember("deleted", 0, doc.GetAllocator());
 	data.AddMember("password", "rj123456", doc.GetAllocator());
-	data.AddMember("createdAt", "2023-08-30T17:22:05", doc.GetAllocator());
-	data.AddMember("updatedAt", "2023-08-30T17:22:05", doc.GetAllocator());
+	data.AddMember("createdAt", getCurrentTime(), doc.GetAllocator());
+	data.AddMember("updatedAt", getCurrentTime(), doc.GetAllocator());
 
 	doc.AddMember("data", data, doc.GetAllocator());
 
@@ -679,7 +679,7 @@ std::string gateway_msg::ptz_preset_list(Preset p, std::vector<Preset> presets, 
 		//presetData.AddMember("device_id", rapidjson::Value(preset.device_id.c_str(), document.GetAllocator()), document.GetAllocator());
 		//presetData.AddMember("channel", preset.channel, document.GetAllocator());
 		presetData.AddMember("presetId", preset.index, document.GetAllocator());
-		presetData.AddMember("presetName", rapidjson::Value(preset.name.c_str(), document.GetAllocator()), document.GetAllocator());
+		presetData.AddMember("presetName", rapidjson::Value(boost::locale::conv::to_utf<char>(preset.name, "GBK").c_str(), document.GetAllocator()), document.GetAllocator());
 
 		// 将 JSON 对象添加到数组
 		dataArray.PushBack(presetData, document.GetAllocator());
@@ -1177,7 +1177,7 @@ std::string gateway_msg::device_add(int step, Platform platform)
 		dataObj.AddMember("lUserId", 4, allocator);
 		dataObj.AddMember("username", platform.username, allocator);
 		dataObj.AddMember("serialNumber", "DS-7808N-R2(C)0820230227CCRRL33683189WCVU", allocator);
-		dataObj.AddMember("name", "test", allocator);
+		dataObj.AddMember("name", "", allocator);
 		dataObj.AddMember("charset", "GB2312", allocator);
 		dataObj.AddMember("ip", platform.ip, allocator);
 		dataObj.AddMember("port", platform.port, allocator);

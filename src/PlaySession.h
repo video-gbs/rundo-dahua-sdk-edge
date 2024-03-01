@@ -92,6 +92,10 @@ public:
 	PlaySession(LLONG handle, int channel, std::string streamid, void* pUser = nullptr);
 	~PlaySession();
 
+	NETHANDLE get_clihandle() {
+		return nMediaClient;
+	}
+
 public:
 	void afterDHReadDataCallBack(BYTE* streambuf, DWORD bufSize);
 	bool setMSAddr(std::string ip, int port, int link_type);
@@ -215,6 +219,7 @@ public:
 	PlaySessionPtr GetPlaySession(std::string key);
 	bool InsertPlaySession(std::string key, PlaySessionPtr p);
 	void DelPlaySession(std::string key);
+	void DisconnetPlaySession(NETHANDLE clihandle);
 	int GetPlaySessionCount()
 	{
 		boost::lock_guard<boost::mutex> lock(session_map_lock);

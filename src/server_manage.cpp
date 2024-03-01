@@ -58,7 +58,7 @@ bool server_manage::start_server(std::string strIP_, int iPort_, std::string str
 				_platform_map[platform.deviceId] = platform;
 
 				std::string build_json = gm.device_add(2, platform);//设置nvr设备状态
-				_client.send_business_queue(build_json);
+				_client.send_business_queueEx(build_json);
 			}
 		}
 	}
@@ -334,7 +334,7 @@ void server_manage::device_upload_func()
 					_platform_map[platform.deviceId] = platform;
 
 					std::string build_json = gm.device_add(2, platform);//设置nvr设备状态
-					_client.send_business_queue(build_json);
+					_client.send_business_queueEx(build_json);
 				}
 			}
 		}
@@ -436,7 +436,7 @@ void server_manage::channel_sync(std::string msg_)
 	build_json = gm.channel_sync(temp_list, temp_platform);
 
 	//发布到业务队列
-	_client.send_business_queue(build_json);
+	_client.send_business_queueEx(build_json);
 	LOG_CONSOLE("结束处理通道同步业务:msgID:%s", temp_platform.msgId.c_str());
 }
 
@@ -463,7 +463,7 @@ void server_manage::device_add(std::string msg_)
 			LOG_CONSOLE("开始发送设备添加结果");
 			build_json = gm.device_add(1, platform);
 			//响应
-			_client.send_business_queue(build_json);
+			_client.send_business_queueEx(build_json);
 		}
 		else
 		{
@@ -471,11 +471,11 @@ void server_manage::device_add(std::string msg_)
 			LOG_CONSOLE("开始发送设备添加结果");
 			build_json = gm.device_add(1, platform);
 			//响应
-			_client.send_business_queue(build_json);
+			_client.send_business_queueEx(build_json);
 			Sleep(1000);
 			LOG_CONSOLE("开始发送设备状态");
 			build_json = gm.device_add(2, platform);//设置nvr设备状态
-			_client.send_business_queue(build_json);
+			_client.send_business_queueEx(build_json);
 
 			//添加设备map管理
 			add_platform(platform);
@@ -495,7 +495,7 @@ void server_manage::device_total_sync(std::string json)
 	std::string build;
 	gm.pars_device_total_sync(json, temp_msgId);
 	build = gm.device_total_sync(platform_list.platforms, temp_msgId);
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 
 	//LoginResults Results;
 	//Platform platform;
@@ -516,7 +516,7 @@ void server_manage::device_total_sync(std::string json)
 	//int ret = _sdk.get_camera_list(Results, temp_list);
 	////生成响应json
 	//build = gm.channel_sync(temp_list, temp_platform);
-	//_client.send_business_queue(build);
+	//_client.send_business_queueEx(build);
 
 	LOG_CONSOLE("结束处理设备全量同步业务:msgId:%s", temp_msgId.c_str());
 }
@@ -530,7 +530,7 @@ void server_manage::device_delete(std::string json)
 	gm.pars_device_delete_soft(json, platform);
 
 	build = gm.response(platform.msgId, 0, "DEVICE_DELETE");
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 	LOG_CONSOLE("结束处理设备删除业务,msgId:", platform.msgId.c_str());
 }
 
@@ -544,7 +544,7 @@ void server_manage::device_delete_soft(std::string msg_)
 	del_platform(platform.deviceId);
 
 	build = gm.response(platform.msgId, 0, "DEVICE_DELETE_SOFT");
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 	LOG_CONSOLE("结束处理[%s]设备软删除业务,msgId:", platform.deviceId.c_str(), platform.msgId.c_str());
 }
 
@@ -557,7 +557,7 @@ void server_manage::device_delete_recover(std::string json)
 	gm.pars_device_delete_soft(json, platform);
 
 	build = gm.response(platform.msgId, 0, "DEVICE_DELETE_RECOVER");
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 	LOG_CONSOLE("结束处理设备删除恢复业务,msgId:", platform.msgId.c_str());
 }
 
@@ -570,7 +570,7 @@ void server_manage::channel_delete_soft(std::string json)
 	gm.pars_device_delete_soft(json, platform);
 
 	build = gm.response(platform.msgId, 0, "CHANNEL_DELETE_SOFT");
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 	LOG_CONSOLE("结束处理通道软删除业务,msgId:", platform.msgId.c_str());
 }
 
@@ -583,7 +583,7 @@ void server_manage::channel_delete_recover(std::string json)
 	gm.pars_device_delete_soft(json, platform);
 
 	build = gm.response(platform.msgId, 0, "CHANNEL_DELETE_RECOVER");
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 	LOG_CONSOLE("结束处理通道删除恢复业务,msgId:", platform.msgId.c_str());
 }
 
@@ -606,11 +606,12 @@ void server_manage::channel_ptz_control(std::string json)
 
 	int val = _sdk.ptz_control(Results, ptz);
 	build = gm.response(ptz.msgId, val, ptz.msgType);
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 
 	if (val != 0)
 	{
-		LOG_ERROR("处理[%d]云台控制业务失败:msgID:%s", ptz.channel, ptz.msgId.c_str());
+		LOG_ERROR("处理[%d]云台控制业务失败[%d]:msgID:%s", ptz.channel, val, ptz.msgId.c_str());
+		return;
 	}
 	LOG_CONSOLE("处理[%d]云台控制业务成功:msgID:%s", ptz.channel, ptz.msgId.c_str());
 }
@@ -634,11 +635,12 @@ void server_manage::channel_ptz_preset(std::string json)
 	std::vector<Preset> temp_list;
 	int val = _sdk.query_ptz_preset(Results, temp_.channel, temp_list);
 	build = gm.ptz_preset_list(temp_, temp_list, val);
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 
 	if (val != 0)
 	{
-		LOG_ERROR("处理[%d]云台预置位业务失败:msgID:%s", temp_.channel, temp_.msgId.c_str());
+		LOG_ERROR("处理[%d]云台预置位业务失败[%d]:msgID:%s", temp_.channel, val, temp_.msgId.c_str());
+		return;
 	}
 	LOG_CONSOLE("处理[%d]云台预置位业务成功:msgID:%s", temp_.channel, temp_.msgId.c_str());
 }
@@ -671,11 +673,12 @@ void server_manage::channel_play(std::string json)
 
 	int val = _sdk.start_real_stream(Results, temp_, MAIN_STREAM);
 	//build = gm.response(temp_.msgId, val, temp_.msgType);
-	//_client.send_business_queue(build);
+	//_client.send_business_queueEx(build);
 
 	if (val != 0)
 	{
-		LOG_ERROR("处理[%d:%s]实况播放业务失败:msgID:%s，剩余会话:%d", temp_.channel, temp_.streamId.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+		LOG_ERROR("处理[%d:%s]实况播放业务失败[%d]:msgID:%s，剩余会话:%d", temp_.channel, temp_.streamId.c_str(), val, temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+		return;
 	}
 	LOG_CONSOLE("处理[%d:%s]实况播放业务成功:msgID:%s，剩余会话:%d", temp_.channel, temp_.streamId.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 }
@@ -700,11 +703,12 @@ void server_manage::channel_record_info(std::string json)
 	std::vector<Preset> temp_list;
 	int val = _sdk.query_record_file(Results, temp_.channel, temp_.startTime, temp_.endTime, list_);
 	build = gm.response_record_list(temp_.msgId, val, temp_.msgType, list_);
-	_client.send_business_queue(build);
+	_client.send_business_queueEx(build);
 
 	if (val != 0)
 	{
-		LOG_ERROR("处理[%d]录像列表业务失败:msgID:%s", temp_.channel, temp_.msgId.c_str());
+		LOG_ERROR("处理[%d]录像列表业务失败[%d]:msgID:%s", temp_.channel, val, temp_.msgId.c_str());
+		return;
 	}
 	LOG_CONSOLE("处理[%d]录像列表业务成功:msgID:%s", temp_.channel, temp_.msgId.c_str());
 }
@@ -728,7 +732,8 @@ void server_manage::channel_playback(std::string json)
 	int val = _sdk.start_play_back(Results, temp_);
 	if (val != 0)
 	{
-		LOG_ERROR("处理[%s:%s-%s]录像回放业务失败:msgID:%s，剩余会话:%d", temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+		LOG_ERROR("处理[%s:%s-%s]录像回放业务失败[%d]:msgID:%s，剩余会话:%d", temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), val, temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+		return;
 	}
 	LOG_CONSOLE("处理[%s:%s-%s]录像回放业务成功:msgID:%s，剩余会话:%d", temp_.streamId.c_str(), temp_.startTime.c_str(), temp_.endTime.c_str(), temp_.msgId.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 	//需要处理响应
@@ -747,6 +752,7 @@ void server_manage::channel_stop_play(std::string json)
 	if (val != 0)
 	{
 		LOG_ERROR("处理[%s]停止播放业务失败，剩余会话:%d", key.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
+		return;
 	}
 	LOG_CONSOLE("处理[%s]停止播放业务成功，剩余会话:%d", key.c_str(), SessionMange_singleton::get_mutable_instance().GetPlaySessionCount());
 }
@@ -765,6 +771,7 @@ void server_manage::device_record_pause(std::string json)
 	if (val != 0)
 	{
 		LOG_ERROR("处理[%s]回放暂停业务失败", streamID.c_str());
+		return;
 	}
 	LOG_CONSOLE("处理[%s]回放暂停业务成功", streamID.c_str());
 }
@@ -783,6 +790,7 @@ void server_manage::device_record_resume(std::string json)
 	if (val != 0)
 	{
 		LOG_ERROR("处理[%s]回放暂停恢复业务失败", streamID.c_str());
+		return;
 	}
 	LOG_CONSOLE("处理[%s]回放暂停恢复业务成功", streamID.c_str());
 }
@@ -802,6 +810,7 @@ void server_manage::device_record_speed(std::string json)
 	if (val != 0)
 	{
 		LOG_ERROR("处理[%s]设置回放倍速业务失败", streamID.c_str());
+		return;
 	}
-	LOG_CONSOLE("处理[%s]设置回放倍速业务成功", streamID.c_str());
+	LOG_CONSOLE("处理[%s]设置回放倍速业务成功,speed:%f", streamID.c_str(), speed);
 }

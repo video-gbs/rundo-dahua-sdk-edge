@@ -26,6 +26,7 @@ PlaySession::PlaySession(LLONG handle, int channel, std::string streamid, void* 
 	:m_lLoginID(handle), m_lRealPlayHandle(0), m_lRecordPlayHandle(0), m_nChannel(channel), m_bGetIFrame(false), m_llDataFrameCount(0), m_lastRecvDataTime(0), source_stream_count_(0), stream_id(streamid), source_stream_timestamp_(0),
 	m_originVideoTimestamp(0), m_videoTimestamp(0), m_originAudioTimestamp(0), m_audioTimestamp(0), m_cbUserData(pUser), nMediaClient(0), nVideoStreamID(-1), _is_frist(true), m_nSpeed(1.0), nCurrentVideoTimestamp(0)
 {
+	nSendRtpVideoMediaBufferLength = 0;
 	LOG_CONSOLE("创建播放会话:%d,stream_id:%s", m_nChannel, stream_id.c_str());
 }
 PlaySession::~PlaySession()
@@ -677,7 +678,7 @@ int PlaySession::sendMS(uint8_t* pRtpVideo, uint32_t nDataLength)
 		nSendRtpVideoMediaBufferLength = 0;
 	}
 
-	if (1)
+	if (1 )
 	{//国标 TCP发送 4个字节方式
 		szSendRtpVideoMediaBuffer[nSendRtpVideoMediaBufferLength + 0] = '$';
 		szSendRtpVideoMediaBuffer[nSendRtpVideoMediaBufferLength + 1] = 0;
@@ -744,4 +745,14 @@ void SessionMange::DelPlaySession(std::string key)
 		session_map.erase(it);
 	}
 	return;
+}
+
+void SessionMange::DisconnetPlaySession(NETHANDLE clihandle)
+{
+	boost::lock_guard<boost::mutex> lock(session_map_lock);
+	for (auto it =session_map.begin();it!= session_map.end();++it)
+	{
+		if(clihandle == it->second->get_clihandle())
+			session_map.erase(it);
+	}
 }

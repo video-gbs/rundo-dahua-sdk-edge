@@ -34,6 +34,7 @@ public:
 
 	bool send_public_queue(std::string msg);
 	bool send_business_queue(std::string msg);
+	bool send_business_queueEx(std::string msg);
 
 	void wait_public()
 	{
@@ -46,8 +47,15 @@ public:
 
 private:
 	void heartbeat_func();
+	void disconnet_func();
+	void sent_business_func();
+	event_condition_variable _disconnet_ev;
 	gateway_msg gm;
+	bool reconnet;//ÖØÁ¬ÖÐ
 
+	event_condition_variable _business_msg_list_ev;
+	boost::mutex _business_msg_list_mtx;
+	std::vector<std::string> _business_msg_list;
 private://http
 
 private://Rabbitmq
@@ -78,10 +86,13 @@ private:
 	event_condition_variable _public_ev;
 	event_condition_variable _business_ev;
 
+	bool _republic;
 	bool while_flag;
 	int _client_type;
 	std::string _client_type_str;
 
+	boost::shared_ptr<boost::thread> _send_msg_thread;//
+	boost::shared_ptr<boost::thread> _handle_disconnet_thread;//
 	boost::shared_ptr<boost::thread> thread_new;
 	bool exchangedeclare_flags;
 	bool exchangedeclare_flagr;

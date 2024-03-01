@@ -16,6 +16,7 @@ public:
 
 	int Connect(const string& strHostname, int iPort, const string& strUser, const string& strPasswd);
 	int Disconnect();
+	void DisconnectEx();
 
 	/**
 	*   @brief       ExchangeDeclare    ÉùÃ÷exchange
@@ -97,8 +98,10 @@ private:
 	string					    m_strUser;
 	string					    m_strPasswd;
 	int                         m_iChannel;
+	int                         m_iDisChannel;
 
 	amqp_socket_t* m_pSock;
+	amqp_connection_state_t     m_pDisConn;
 	amqp_connection_state_t     m_pConn;
 	amqp_channel_open_ok_t* channel_id;
 	amqp_bytes_t consumer_tag;
